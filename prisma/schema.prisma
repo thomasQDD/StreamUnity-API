@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  password         String
+  name             String
+  streamingName    String?
+  avatar           String?
+  isActive         Boolean  @default(true)
+  isEmailVerified  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  platforms        Platform[]
+  chatSettings     ChatSettings?
+  chatMessages     ChatMessage[]
+  moderationActions ModerationAction[]
+
+  @@map("users")
+}
+
+model Platform {
+  id            String   @id @default(cuid())
+  userId        String
+  platformType  PlatformType
+  username      String?
+  channelId     String?
+  accessToken   String?
+  refreshToken  String?
+  isConnected   Boolean  @default(false)
+  lastSynced    DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatMessages  ChatMessage[]
+
+  @@unique([userId, platformType])
+  @@map("platforms")
+}
+
+model ChatSettings {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  theme         String   @default("dark")
+  fontSize      String   @default("medium")
+  showBadges    Boolean  @default(true)
+  showEmotes    Boolean  @default(true)
+  width         Int      @default(400)
+  height        Int      @default(600)
+  opacity       Float    @default(0.9)
+  position      String   @default("bottom-right")
+  customCSS     String?
+  enableModeration Boolean @default(true)
+  bannedWords   String[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_settings")
+}
+
+model ChatMessage {
+  id            String   @id @default(cuid())
+  userId        String
+  platformId    String
+  platformType  PlatformType
+  username      String
+  displayName   String?
+  message       String
+  timestamp     DateTime @default(now())
+  badges        Json?
+  emotes        Json?
+  color         String?
+  isModerated   Boolean  @default(false)
+  isDeleted     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform      Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  moderationActions ModerationAction[]
+
+  @@map("chat_messages")
+}
+
+model ModerationAction {
+  id            String   @id @default(cuid())
+  userId        String
+  messageId     String
+  action        ModerationActionType
+  reason        String?
+  performedAt   DateTime @default(now())
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message       ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("moderation_actions")
+}
+
+enum PlatformType {
+  TWITCH
+  YOUTUBE
+  TIKTOK
+  FACEBOOK
+  KICK
+}
+
+enum ModerationActionType {
+  DELETE
+  TIMEOUT
+  BAN
+  WARN
+  APPROVE
+}
