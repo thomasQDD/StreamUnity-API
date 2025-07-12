@@ -43,11 +43,16 @@ export class ChatService {
     });
   }
 
-  async moderateMessage(messageId: string, action: 'DELETE' | 'APPROVE', userId: string, reason?: string) {
+  async moderateMessage(
+    messageId: string,
+    action: 'DELETE' | 'APPROVE',
+    userId: string,
+    reason?: string,
+  ) {
     // Update message moderation status
     await this.prisma.chatMessage.update({
       where: { id: messageId },
-      data: { 
+      data: {
         isModerated: true,
         isDeleted: action === 'DELETE',
       },

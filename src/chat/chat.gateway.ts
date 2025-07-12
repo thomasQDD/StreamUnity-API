@@ -6,6 +6,7 @@ import {
   OnGatewayDisconnect,
   MessageBody,
   ConnectedSocket,
+  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
@@ -16,11 +17,18 @@ import { ChatService } from './chat.service';
     methods: ['GET', 'POST'],
   },
 })
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ChatGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
   constructor(private chatService: ChatService) {}
+
+  afterInit(server: Server) {
+    // Make the server globally available for Twitch service
+    global.chatGateway = this;
+  }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -51,7 +59,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('newMessage')
   async handleNewMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       userId: string;
       platformId: string;
       platformType: string;
@@ -94,7 +103,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('moderateMessage')
   async handleModerateMessage(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: {
+    @MessageBody()
+    data: {
       messageId: string;
       action: 'DELETE' | 'APPROVE';
       userId: string;
@@ -114,6 +124,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       messageId: data.messageId,
       action: data.action,
       moderatedBy: data.userId,
+    });
+  }
+
+  // Method to broadcast Twitch messages
+  broadcastTwitchMessage(userId: string, message: any) {
+    this.server.to(`user_${userId}`).emit('twitchMessage', {
+      id: message.id,
+      username: message.username,
+      displayName: message.displayName,
+      message: message.message,
+      platformType: message.platformType,
+      badges: message.badges,
+      emotes: message.emotes,
+      color: message.color,
+      timestamp: message.timestamp,
     });
   }
 }

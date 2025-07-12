@@ -4,6 +4,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ChatModule } from './chat/chat.module';
+import { TwitchModule } from './twitch/twitch.module';
+import { ChatBotModule } from './chatbot/chatbot.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -14,6 +16,8 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     AuthModule,
     ChatModule,
+    TwitchModule,
+    ChatBotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
